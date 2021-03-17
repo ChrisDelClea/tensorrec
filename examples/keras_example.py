@@ -1,16 +1,15 @@
-import keras as ks
-
-from tensorrec import TensorRec
-from tensorrec.eval import fit_and_eval, eval_random_ranks_on_dataset
-from tensorrec.loss_graphs import BalancedWMRBLossGraph
-from tensorrec.representation_graphs import (
-    AbstractKerasRepresentationGraph, NormalizedLinearRepresentationGraph, LinearRepresentationGraph
-)
-from tensorrec.util import append_to_string_at_point
-
+import logging
 from test.datasets import get_book_crossing
 
-import logging
+import keras as ks
+from tensorrec import TensorRec
+from tensorrec.eval import eval_random_ranks_on_dataset, fit_and_eval
+from tensorrec.loss_graphs import BalancedWMRBLossGraph
+from tensorrec.representation_graphs import (AbstractKerasRepresentationGraph,
+                                             LinearRepresentationGraph,
+                                             NormalizedLinearRepresentationGraph)
+from tensorrec.util import append_to_string_at_point
+
 logging.getLogger().setLevel(logging.INFO)
 
 # Build results header string

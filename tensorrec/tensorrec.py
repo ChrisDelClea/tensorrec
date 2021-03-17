@@ -158,7 +158,7 @@ class TensorRec(object):
             iterator_resource_name, output_types, output_shapes, output_classes = \
                 self.graph_iterator_hook_node_names[graph_iterator_hook_attr_name]
             iterator_resource = session.graph.get_tensor_by_name(name=iterator_resource_name)
-            iterator = tf.data.Iterator(iterator_resource, None, output_types, output_shapes, output_classes)
+            iterator = tf.compat.v1.data.Iterator(iterator_resource, None, output_types, output_shapes, output_classes)
             self.__setattr__(graph_iterator_hook_attr_name, iterator)
 
     def _record_graph_hook_names(self):
@@ -270,10 +270,10 @@ class TensorRec(object):
     def _build_tf_graph(self, n_user_features, n_item_features):
 
         # Build placeholders
-        self.tf_n_sampled_items = tf.placeholder('int64')
-        self.tf_similar_items_ids = tf.placeholder('int64', [None])
-        self.tf_learning_rate = tf.placeholder('float', None)
-        self.tf_alpha = tf.placeholder('float', None)
+        self.tf_n_sampled_items = tf.compat.v1.placeholder('int64')
+        self.tf_similar_items_ids = tf.compat.v1.placeholder('int64', [None])
+        self.tf_learning_rate = tf.compat.v1.placeholder('float', None)
+        self.tf_alpha = tf.compat.v1.placeholder('float', None)
 
         tf_user_feature_rows, tf_user_feature_cols, tf_user_feature_values, tf_n_users, _ = \
             self.tf_user_feature_iterator.get_next()
@@ -296,7 +296,7 @@ class TensorRec(object):
 
         # Construct the sampling py_func
         sample_items_partial = partial(sample_items, replace=self.loss_graph_factory.is_sampled_with_replacement)
-        self.tf_sample_indices = tf.py_func(func=sample_items_partial,
+        self.tf_sample_indices = tf.compat.v1.py_func(func=sample_items_partial,
                                             inp=[tf_n_items, tf_n_users, self.tf_n_sampled_items],
                                             Tout=tf.int64)
         self.tf_sample_indices.set_shape([None, None])
@@ -313,7 +313,7 @@ class TensorRec(object):
         tf_weights.extend(item_weights)
 
         tf_x_user, tf_x_item = split_sparse_tensor_indices(tf_sparse_tensor=tf_interactions, n_dimensions=2)
-        tf_transposed_sample_indices = tf.transpose(self.tf_sample_indices)
+        tf_transposed_sample_indices = tf.transpose(a=self.tf_sample_indices)
         tf_x_user_sample = tf_transposed_sample_indices[0]
         tf_x_item_sample = tf_transposed_sample_indices[1]
 
@@ -486,7 +486,7 @@ class TensorRec(object):
 
         self.tf_weight_reg_loss = sum(tf.nn.l2_loss(weights) for weights in tf_weights)
         self.tf_loss = self.tf_basic_loss + (self.tf_alpha * self.tf_weight_reg_loss)
-        self.tf_optimizer = tf.train.AdamOptimizer(learning_rate=self.tf_learning_rate).minimize(self.tf_loss)
+        self.tf_optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.tf_learning_rate).minimize(self.tf_loss)
 
         # Record the new node names
         self._record_graph_hook_names()
@@ -603,7 +603,7 @@ class TensorRec(object):
             # Numbers of features are either learned at fit time from the shape of these two matrices or specified at
             # TensorRec construction and cannot be changed.
             self._build_tf_graph(n_user_features=n_user_features, n_item_features=n_item_features)
-            session.run(tf.global_variables_initializer())
+            session.run(tf.compat.v1.global_variables_initializer())
 
         # Build the shared feed dict
         feed_dict = {self.tf_learning_rate: learning_rate,
@@ -882,7 +882,7 @@ class TensorRec(object):
         if not os.path.exists(directory_path):
             os.makedirs(directory_path)
 
-        saver = tf.train.Saver()
+        saver = tf.compat.v1.train.Saver()
         session_path = os.path.join(directory_path, 'tensorrec_session.cpkt')
         saver.save(sess=get_session(), save_path=session_path)
 
@@ -905,7 +905,7 @@ class TensorRec(object):
         """
 
         graph_path = os.path.join(directory_path, 'tensorrec_session.cpkt.meta')
-        saver = tf.train.import_meta_graph(graph_path)
+        saver = tf.compat.v1.train.import_meta_graph(graph_path)
 
         session_path = os.path.join(directory_path, 'tensorrec_session.cpkt')
         saver.restore(sess=get_session(), save_path=session_path)

@@ -1,5 +1,9 @@
 import abc
+
 import tensorflow as tf
+import tensorflow_probability as tfp
+
+tfd = tfp.distributions
 
 
 class AbstractLossGraph(object):
@@ -56,7 +60,7 @@ class RMSELossGraph(AbstractLossGraph):
     Interactions can be any positive or negative values, and this loss function is sensitive to magnitude.
     """
     def connect_loss_graph(self, tf_prediction_serial, tf_interactions_serial, **kwargs):
-        return tf.sqrt(tf.reduce_mean(tf.square(tf_interactions_serial - tf_prediction_serial)))
+        return tf.sqrt(tf.reduce_mean(input_tensor=tf.square(tf_interactions_serial - tf_prediction_serial)))
 
 
 class RMSEDenseLossGraph(AbstractLossGraph):
@@ -68,8 +72,8 @@ class RMSEDenseLossGraph(AbstractLossGraph):
     is_dense = True
 
     def connect_loss_graph(self, tf_interactions, tf_prediction, **kwargs):
-        error = tf.sparse_add(tf_interactions, -1.0 * tf_prediction)
-        return tf.sqrt(tf.reduce_mean(tf.square(error)))
+        error = tf.sparse.add(a=tf_interactions, b=-1.0 * tf_prediction)
+        return tf.sqrt(tf.reduce_mean(input_tensor=tf.square(error)))
 
 
 class SeparationLossGraph(AbstractLossGraph):
@@ -84,14 +88,14 @@ class SeparationLossGraph(AbstractLossGraph):
         tf_positive_mask = tf.greater(tf_interactions_serial, 0.0)
         tf_negative_mask = tf.less_equal(tf_interactions_serial, 0.0)
 
-        tf_positive_predictions = tf.boolean_mask(tf_prediction_serial, tf_positive_mask)
-        tf_negative_predictions = tf.boolean_mask(tf_prediction_serial, tf_negative_mask)
+        tf_positive_predictions = tf.boolean_mask(tensor=tf_prediction_serial, mask=tf_positive_mask)
+        tf_negative_predictions = tf.boolean_mask(tensor=tf_prediction_serial, mask=tf_negative_mask)
 
-        tf_pos_mean, tf_pos_var = tf.nn.moments(tf_positive_predictions, axes=[0])
-        tf_neg_mean, tf_neg_var = tf.nn.moments(tf_negative_predictions, axes=[0])
+        tf_pos_mean, tf_pos_var = tf.nn.moments(x=tf_positive_predictions, axes=[0])
+        tf_neg_mean, tf_neg_var = tf.nn.moments(x=tf_negative_predictions, axes=[0])
 
-        tf_overlap_distribution = tf.contrib.distributions.Normal(loc=(tf_neg_mean - tf_pos_mean),
-                                                                  scale=tf.sqrt(tf_neg_var + tf_pos_var))
+        tf_overlap_distribution = tfd.Normal(loc=(tf_neg_mean - tf_pos_mean),
+                                             scale=tf.sqrt(tf_neg_var + tf_pos_var))
 
         loss = 1.0 - tf_overlap_distribution.cdf(0.0)
         return loss
@@ -109,26 +113,26 @@ class SeparationDenseLossGraph(AbstractLossGraph):
 
     def connect_loss_graph(self, tf_prediction, tf_interactions, **kwargs):
 
-        interactions_shape = tf.shape(tf_interactions)
+        interactions_shape = tf.shape(input=tf_interactions)
         int_serial_shape = tf.cast([interactions_shape[0] * interactions_shape[1]], tf.int32)
-        tf_interactions_serial = tf.reshape(tf.sparse_tensor_to_dense(tf_interactions),
+        tf_interactions_serial = tf.reshape(tf.sparse.to_dense(tf_interactions),
                                             shape=int_serial_shape)
 
-        prediction_shape = tf.shape(tf_prediction)
+        prediction_shape = tf.shape(input=tf_prediction)
         pred_serial_shape = tf.cast([prediction_shape[0] * prediction_shape[1]], tf.int32)
         tf_prediction_serial = tf.reshape(tf_prediction, shape=pred_serial_shape)
 
         tf_positive_mask = tf.greater(tf_interactions_serial, 0.0)
         tf_negative_mask = tf.less_equal(tf_interactions_serial, 0.0)
 
-        tf_positive_predictions = tf.boolean_mask(tf_prediction_serial, tf_positive_mask)
-        tf_negative_predictions = tf.boolean_mask(tf_prediction_serial, tf_negative_mask)
+        tf_positive_predictions = tf.boolean_mask(tensor=tf_prediction_serial, mask=tf_positive_mask)
+        tf_negative_predictions = tf.boolean_mask(tensor=tf_prediction_serial, mask=tf_negative_mask)
 
-        tf_pos_mean, tf_pos_var = tf.nn.moments(tf_positive_predictions, axes=[0])
-        tf_neg_mean, tf_neg_var = tf.nn.moments(tf_negative_predictions, axes=[0])
+        tf_pos_mean, tf_pos_var = tf.nn.moments(x=tf_positive_predictions, axes=[0])
+        tf_neg_mean, tf_neg_var = tf.nn.moments(x=tf_negative_predictions, axes=[0])
 
-        tf_overlap_distribution = tf.contrib.distributions.Normal(loc=(tf_neg_mean - tf_pos_mean),
-                                                                  scale=tf.sqrt(tf_neg_var + tf_pos_var))
+        tf_overlap_distribution = tfd.Normal(loc=(tf_neg_mean - tf_pos_mean),
+                                             scale=tf.sqrt(tf_neg_var + tf_pos_var))
 
         loss = 1.0 - tf_overlap_distribution.cdf(0.0)
         return loss
@@ -153,19 +157,19 @@ class WMRBLossGraph(AbstractLossGraph):
     def weighted_margin_rank_batch(self, tf_prediction_serial, tf_interactions, tf_sample_predictions, tf_n_items,
                                    tf_n_sampled_items):
         positive_interaction_mask = tf.greater(tf_interactions.values, 0.0)
-        positive_interaction_indices = tf.boolean_mask(tf_interactions.indices,
-                                                       positive_interaction_mask)
+        positive_interaction_indices = tf.boolean_mask(tensor=tf_interactions.indices,
+                                                       mask=positive_interaction_mask)
 
         # [ n_positive_interactions ]
-        positive_predictions = tf.boolean_mask(tf_prediction_serial,
-                                               positive_interaction_mask)
+        positive_predictions = tf.boolean_mask(tensor=tf_prediction_serial,
+                                               mask=positive_interaction_mask)
 
         n_items = tf.cast(tf_n_items, dtype=tf.float32)
         n_sampled_items = tf.cast(tf_n_sampled_items, dtype=tf.float32)
 
         # [ n_positive_interactions, n_sampled_items ]
         mapped_predictions_sample_per_interaction = tf.gather(params=tf_sample_predictions,
-                                                              indices=tf.transpose(positive_interaction_indices)[0])
+                                                              indices=tf.transpose(a=positive_interaction_indices)[0])
 
         # [ n_positive_interactions, n_sampled_items ]
         summation_term = tf.maximum(1.0
@@ -174,9 +178,9 @@ class WMRBLossGraph(AbstractLossGraph):
                                     0.0)
 
         # [ n_positive_interactions ]
-        sampled_margin_rank = (n_items / n_sampled_items) * tf.reduce_sum(summation_term, axis=1)
+        sampled_margin_rank = (n_items / n_sampled_items) * tf.reduce_sum(input_tensor=summation_term, axis=1)
 
-        loss = tf.log(sampled_margin_rank + 1.0)
+        loss = tf.math.log(sampled_margin_rank + 1.0)
         return loss
 
 
@@ -189,28 +193,28 @@ class BalancedWMRBLossGraph(WMRBLossGraph):
     def weighted_margin_rank_batch(self, tf_prediction_serial, tf_interactions, tf_sample_predictions, tf_n_items,
                                    tf_n_sampled_items):
         positive_interaction_mask = tf.greater(tf_interactions.values, 0.0)
-        positive_interaction_indices = tf.boolean_mask(tf_interactions.indices,
-                                                       positive_interaction_mask)
-        positive_interaction_values = tf.boolean_mask(tf_interactions.values,
-                                                      positive_interaction_mask)
+        positive_interaction_indices = tf.boolean_mask(tensor=tf_interactions.indices,
+                                                       mask=positive_interaction_mask)
+        positive_interaction_values = tf.boolean_mask(tensor=tf_interactions.values,
+                                                      mask=positive_interaction_mask)
 
         positive_interactions = tf.SparseTensor(indices=positive_interaction_indices,
                                                 values=positive_interaction_values,
                                                 dense_shape=tf_interactions.dense_shape)
-        listening_sum_per_item = tf.sparse_reduce_sum(positive_interactions, axis=0)
+        listening_sum_per_item = tf.sparse.reduce_sum(positive_interactions, axis=0)
         gathered_sums = tf.gather(params=listening_sum_per_item,
-                                  indices=tf.transpose(positive_interaction_indices)[1])
+                                  indices=tf.transpose(a=positive_interaction_indices)[1])
 
         # [ n_positive_interactions ]
-        positive_predictions = tf.boolean_mask(tf_prediction_serial,
-                                               positive_interaction_mask)
+        positive_predictions = tf.boolean_mask(tensor=tf_prediction_serial,
+                                               mask=positive_interaction_mask)
 
         n_items = tf.cast(tf_n_items, dtype=tf.float32)
         n_sampled_items = tf.cast(tf_n_sampled_items, dtype=tf.float32)
 
         # [ n_positive_interactions, n_sampled_items ]
         mapped_predictions_sample_per_interaction = tf.gather(params=tf_sample_predictions,
-                                                              indices=tf.transpose(positive_interaction_indices)[0])
+                                                              indices=tf.transpose(a=positive_interaction_indices)[0])
 
         # [ n_positive_interactions, n_sampled_items ]
         summation_term = tf.maximum(1.0
@@ -220,8 +224,8 @@ class BalancedWMRBLossGraph(WMRBLossGraph):
 
         # [ n_positive_interactions ]
         sampled_margin_rank = ((n_items / n_sampled_items)
-                               * tf.reduce_sum(summation_term, axis=1)
+                               * tf.reduce_sum(input_tensor=summation_term, axis=1)
                                * positive_interaction_values / gathered_sums)
 
-        loss = tf.log(sampled_margin_rank + 1.0)
+        loss = tf.math.log(sampled_margin_rank + 1.0)
         return loss

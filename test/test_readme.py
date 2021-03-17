@@ -52,10 +52,10 @@ class ReadmeTestCase(TestCase):
                 dimensions and the second value is a list containing all tf.Variables which should be subject to
                 regularization.
                 """
-                tf_tanh_weights = tf.Variable(tf.random_normal([n_features, n_components], stddev=.5),
+                tf_tanh_weights = tf.Variable(tf.random.normal([n_features, n_components], stddev=.5),
                                               name='tanh_weights_%s' % node_name_ending)
 
-                tf_repr = tf.nn.tanh(tf.sparse_tensor_dense_matmul(tf_features, tf_tanh_weights))
+                tf_repr = tf.nn.tanh(tf.sparse.sparse_dense_matmul(tf_features, tf_tanh_weights))
 
                 # Return repr layer and variables
                 return tf_repr, [tf_tanh_weights]
@@ -92,7 +92,7 @@ class ReadmeTestCase(TestCase):
                 :return:
                 A tf.Tensor containing the learning loss.
                 """
-                return tf.reduce_mean(tf.abs(tf_interactions_serial - tf_prediction_serial))
+                return tf.reduce_mean(input_tensor=tf.abs(tf_interactions_serial - tf_prediction_serial))
 
         # Build a model with the custom loss function
         model = tensorrec.TensorRec(loss_graph=SimpleLossGraph())

@@ -125,7 +125,7 @@ def append_to_string_at_point(string, value, point):
 
 
 def simple_tf_print(tensor, places=100):
-    return tf.Print(tensor, [tensor, tf.shape(tensor)], summarize=places)
+    return tf.compat.v1.Print(tensor, [tensor, tf.shape(input=tensor)], summarize=places)
 
 
 class lazyval(object):

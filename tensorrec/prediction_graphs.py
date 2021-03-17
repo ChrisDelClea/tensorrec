@@ -52,7 +52,7 @@ class DotProductPredictionGraph(AbstractPredictionGraph):
     def connect_serial_prediction_graph(self, tf_user_representation, tf_item_representation, tf_x_user, tf_x_item):
         gathered_user_reprs = tf.gather(tf_user_representation, tf_x_user)
         gathered_item_reprs = tf.gather(tf_item_representation, tf_x_item)
-        return tf.reduce_sum(tf.multiply(gathered_user_reprs, gathered_item_reprs), axis=1)
+        return tf.reduce_sum(input_tensor=tf.multiply(gathered_user_reprs, gathered_item_reprs), axis=1)
 
 
 class CosineSimilarityPredictionGraph(AbstractPredictionGraph):
@@ -69,7 +69,7 @@ class CosineSimilarityPredictionGraph(AbstractPredictionGraph):
         normalized_items = tf.nn.l2_normalize(tf_item_representation, 1)
         gathered_user_reprs = tf.gather(normalized_users, tf_x_user)
         gathered_item_reprs = tf.gather(normalized_items, tf_x_item)
-        return tf.reduce_sum(tf.multiply(gathered_user_reprs, gathered_item_reprs), axis=1)
+        return tf.reduce_sum(input_tensor=tf.multiply(gathered_user_reprs, gathered_item_reprs), axis=1)
 
 
 class EuclideanSimilarityPredictionGraph(AbstractPredictionGraph):
@@ -84,15 +84,15 @@ class EuclideanSimilarityPredictionGraph(AbstractPredictionGraph):
     def connect_dense_prediction_graph(self, tf_user_representation, tf_item_representation):
 
         # [ n_users, 1 ]
-        r_user = tf.reduce_sum(tf_user_representation ** 2, 1, keep_dims=True)
+        r_user = tf.reduce_sum(input_tensor=tf_user_representation ** 2, axis=1, keepdims=True)
 
         # [ n_items, 1 ]
-        r_item = tf.reduce_sum(tf_item_representation ** 2, 1, keep_dims=True)
+        r_item = tf.reduce_sum(input_tensor=tf_item_representation ** 2, axis=1, keepdims=True)
 
         # [ n_users, n_items ]
         distance = (r_user
                     - 2.0 * tf.matmul(tf_user_representation, tf_item_representation, transpose_b=True)
-                    + tf.transpose(r_item))
+                    + tf.transpose(a=r_item))
 
         # For numeric stability
         distance = tf.maximum(distance, self.epsilon)
@@ -109,7 +109,7 @@ class EuclideanSimilarityPredictionGraph(AbstractPredictionGraph):
         delta = tf.pow(gathered_user_reprs - gathered_item_reprs, 2)
 
         # [ n_interactions, 1 ]
-        distance = tf.reduce_sum(delta, axis=1)
+        distance = tf.reduce_sum(input_tensor=delta, axis=1)
 
         # For numeric stability
         distance = tf.maximum(distance, self.epsilon)

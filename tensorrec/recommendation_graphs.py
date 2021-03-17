@@ -12,7 +12,7 @@ def project_biases(tf_features, n_features):
 
     # The reduce sum is to perform a rank reduction
     tf_projected_biases = tf.reduce_sum(
-        tf.sparse_tensor_dense_matmul(tf_features, tf_feature_biases),
+        input_tensor=tf.sparse.sparse_dense_matmul(tf_features, tf_feature_biases),
         axis=1
     )
 
@@ -26,7 +26,7 @@ def split_sparse_tensor_indices(tf_sparse_tensor, n_dimensions):
     :param n_dimensions:
     :return:
     """
-    tf_transposed_indices = tf.transpose(tf_sparse_tensor.indices)
+    tf_transposed_indices = tf.transpose(a=tf_sparse_tensor.indices)
     return (tf_transposed_indices[i] for i in range(n_dimensions))
 
 
@@ -77,7 +77,7 @@ def rank_predictions(tf_prediction):
     :param tf_prediction:
     :return:
     """
-    tf_prediction_item_size = tf.shape(tf_prediction)[1]
+    tf_prediction_item_size = tf.shape(input=tf_prediction)[1]
     tf_indices_of_ranks = tf.nn.top_k(tf_prediction, k=tf_prediction_item_size)[1]
     return tf.nn.top_k(-tf_indices_of_ranks, k=tf_prediction_item_size)[1] + 1
 
@@ -100,11 +100,11 @@ def collapse_mixture_of_tastes(tastes_predictions, tastes_attentions):
 
         # The softmax'd attentions serve as weights for the taste predictions
         weighted_predictions = tf.multiply(stacked_predictions, softmax_attentions)
-        result_prediction = tf.reduce_sum(weighted_predictions, axis=0)
+        result_prediction = tf.reduce_sum(input_tensor=weighted_predictions, axis=0)
 
     # If there is no attention, the max prediction is returned
     else:
-        result_prediction = tf.reduce_max(stacked_predictions, axis=0)
+        result_prediction = tf.reduce_max(input_tensor=stacked_predictions, axis=0)
 
     return result_prediction
 

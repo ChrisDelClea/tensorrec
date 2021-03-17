@@ -32,12 +32,12 @@ class LinearRepresentationGraph(AbstractRepresentationGraph):
     def connect_representation_graph(self, tf_features, n_components, n_features, node_name_ending):
 
         # Weights are normalized before building the variable
-        raw_weights = tf.random_normal([n_features, n_components], stddev=1.0)
+        raw_weights = tf.random.normal([n_features, n_components], stddev=1.0)
         normalized_weights = tf.nn.l2_normalize(raw_weights, 1)
 
         # Create variable nodes
         tf_linear_weights = tf.Variable(normalized_weights, name='linear_weights_{}'.format(node_name_ending))
-        tf_repr = tf.sparse_tensor_dense_matmul(tf_features, tf_linear_weights)
+        tf_repr = tf.sparse.sparse_dense_matmul(tf_features, tf_linear_weights)
 
         # Return repr layer and variables
         return tf_repr, [tf_linear_weights]
@@ -71,7 +71,7 @@ class FeaturePassThroughRepresentationGraph(AbstractRepresentationGraph):
                                 self.__class__.__name__, n_features, n_components
                              ))
 
-        return tf.sparse_tensor_to_dense(tf_features, validate_indices=False), []
+        return tf.sparse.to_dense(tf_features, validate_indices=False), []
 
 
 class WeightedFeaturePassThroughRepresentationGraph(FeaturePassThroughRepresentationGraph):
@@ -108,15 +108,15 @@ class ReLURepresentationGraph(AbstractRepresentationGraph):
             relu_size = self.relu_size
 
         # Create variable nodes
-        tf_relu_weights = tf.Variable(tf.random_normal([n_features, relu_size], stddev=.5),
+        tf_relu_weights = tf.Variable(tf.random.normal([n_features, relu_size], stddev=.5),
                                       name='relu_weights_{}'.format(node_name_ending))
         tf_relu_biases = tf.Variable(tf.zeros([1, relu_size]),
                                      name='relu_biases_{}'.format(node_name_ending))
-        tf_linear_weights = tf.Variable(tf.random_normal([relu_size, n_components], stddev=.5),
+        tf_linear_weights = tf.Variable(tf.random.normal([relu_size, n_components], stddev=.5),
                                         name='linear_weights_{}'.format(node_name_ending))
 
         # Create ReLU layer
-        tf_relu = tf.nn.relu(tf.add(tf.sparse_tensor_dense_matmul(tf_features, tf_relu_weights),
+        tf_relu = tf.nn.relu(tf.add(tf.sparse.sparse_dense_matmul(tf_features, tf_relu_weights),
                                     tf_relu_biases))
         tf_repr = tf.matmul(tf_relu, tf_linear_weights)
 

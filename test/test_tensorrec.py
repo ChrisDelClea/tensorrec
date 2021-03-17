@@ -404,7 +404,7 @@ class TensorRecSavingTestCase(TestCase):
             num_users=15, num_items=30, interaction_density=.5, num_user_features=200, num_item_features=200,
             n_features_per_user=20, n_features_per_item=20, pos_int_ratio=.5
         )
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         set_session(None)
 
     def setUp(self):
@@ -431,7 +431,7 @@ class TensorRecSavingTestCase(TestCase):
 
         # Blow away the session
         set_session(None)
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         # Reload the model, predict, and check for equal predictions
         new_model = TensorRec.load_model(directory_path=self.test_dir)

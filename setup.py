@@ -1,23 +1,23 @@
-from setuptools import setup
-
 from os import path
+
+from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
 
 setup(
   name='tensorrec',
   packages=['tensorrec'],
-  version='0.26.2',
+  version='2.26.2',
   description='A TensorFlow recommendation algorithm and framework in Python.',
-  author='James Kirk',
-  author_email='james.f.kirk@gmail.com',
+  author='',
+  author_email='',
   url='https://github.com/jfkirk/tensorrec',
-  keywords=['machine-learning', 'tensorflow', 'recommendation-system', 'python', 'recommender-system'],
+  keywords=['machine-learning', 'tensorflow', 'recommendation-system', 'python', 'recommender-system', 'tensorflow 2'],
   classifiers=[],
   install_requires=[
       "numpy>=1.14.1",
       "scipy>=0.19.1",
-      "six==1.11.0",
-      "tensorflow>=1.7.0",
+      "six>=1.11.0",
+      "tensorflow==2.3.1",
   ],
 )

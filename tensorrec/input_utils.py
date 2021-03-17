@@ -12,7 +12,7 @@ def create_tensorrec_iterator(name):
     The name for this Iterator.
     :return: tf.data.Iterator
     """
-    return tf.data.Iterator.from_structure(
+    return tf.compat.v1.data.Iterator.from_structure(
             output_types=(tf.int64, tf.int64, tf.float32, tf.int64, tf.int64),
             output_shapes=([None], [None], [None], [], []),
             shared_name=name
@@ -90,7 +90,7 @@ def write_tfrecord_from_tensorrec_dataset(tfrecord_path, dataset):
     def _float_feature(float_values):
         return tf.train.Feature(float_list=tf.train.FloatList(value=float_values))
 
-    writer = tf.python_io.TFRecordWriter(tfrecord_path)
+    writer = tf.io.TFRecordWriter(tfrecord_path)
     feature = {
         'row_index': _int64_feature(row_index),
         'col_index': _int64_feature(col_index),
@@ -113,13 +113,13 @@ def create_tensorrec_dataset_from_tfrecord(tfrecord_path):
 
     def parse_tensorrec_tfrecord(example_proto):
         features = {
-            'row_index': tf.FixedLenSequenceFeature((), tf.int64, allow_missing=True),
-            'col_index': tf.FixedLenSequenceFeature((), tf.int64, allow_missing=True),
-            'values': tf.FixedLenSequenceFeature((), tf.float32, allow_missing=True),
-            'd0': tf.FixedLenFeature((), tf.int64),
-            'd1': tf.FixedLenFeature((), tf.int64),
+            'row_index': tf.io.FixedLenSequenceFeature((), tf.int64, allow_missing=True),
+            'col_index': tf.io.FixedLenSequenceFeature((), tf.int64, allow_missing=True),
+            'values': tf.io.FixedLenSequenceFeature((), tf.float32, allow_missing=True),
+            'd0': tf.io.FixedLenFeature((), tf.int64),
+            'd1': tf.io.FixedLenFeature((), tf.int64),
         }
-        parsed_features = tf.parse_single_example(example_proto, features)
+        parsed_features = tf.io.parse_single_example(serialized=example_proto, features=features)
         return (parsed_features['row_index'], parsed_features['col_index'], parsed_features['values'],
                 parsed_features['d0'], parsed_features['d1'])
 

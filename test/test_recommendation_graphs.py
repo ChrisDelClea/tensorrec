@@ -31,7 +31,7 @@ class RecommendationGraphsTestCase(TestCase):
         tf_feature_biases, tf_projected_biases = project_biases(tf_features=sparse_tensor_features,
                                                                 n_features=n_features)
 
-        self.session.run(tf.global_variables_initializer())
+        self.session.run(tf.compat.v1.global_variables_initializer())
         assign_op = tf_feature_biases.assign(value=[[-.5], [.5], [0], [2.0]])
         self.session.run(assign_op)
 
